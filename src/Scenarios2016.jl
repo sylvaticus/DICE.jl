@@ -1,5 +1,5 @@
 function assign_scenario(s::BasePriceScenario, model::JuMP.Model, config::OptionsV2016R2, params::ParametersV2016, vars::VariablesV2016)
-    JuMP.set_value(params.ψ₂, 0.000001);
+    JuMP.set_parameter_value(params.ψ₂, 0.000001);
     for i in 1:config.N
         JuMP.set_upper_bound(vars.CPRICE[i], 10000.0);
     end
@@ -12,11 +12,11 @@ function assign_scenario(s::BasePriceScenario, model::JuMP.Model, config::Option
             JuMP.set_upper_bound(vars.CPRICE[i], max(photel[i],params.cpricebase[i]));
         end
     end
-    JuMP.set_value(params.ψ₂, config.ψ₂);
+    JuMP.set_parameter_value(params.ψ₂, config.ψ₂);
 end
 
 function assign_scenario(s::BasePriceScenario, model::Model, config::OptionsV2016R, params::ParametersV2016, vars::VariablesV2016)
-    JuMP.set_value(params.ψ₂, 0.0);
+    JuMP.set_parameter_value(params.ψ₂, 0.0);
     optimize!(model);
 
     photel = value.(vars.CPRICE);
@@ -26,7 +26,7 @@ function assign_scenario(s::BasePriceScenario, model::Model, config::OptionsV201
             JuMP.set_upper_bound(vars.CPRICE[i], max(photel[i],params.cpricebase[i]));
         end
     end
-    JuMP.set_value(params.ψ₂, config.ψ₂);
+    JuMP.set_parameter_value(params.ψ₂, config.ψ₂);
 end
 
 function assign_scenario(s::OptimalPriceScenario, model::Model, config::Options, params::ParametersV2016, vars::VariablesV2016)

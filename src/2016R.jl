@@ -117,7 +117,7 @@ function generate_parameters(c::OptionsV2016R, model::JuMP.Model)
     σ₀::Float64 = c.e₀/(c.q₀*(1-c.μ₀)); # Carbon intensity 2010 (kgCO2 per output 2010 USD 2010)
     λ::Float64 = c.η/c.t2xco2; # Climate model parameter
 
-    @NLparameter(model, ψ₂ == c.ψ₂);
+    @variable(model, ψ₂ in Parameter(c.ψ₂))
 
     # Backstop price
     pbacktime = Array{Float64}(undef, c.N);
@@ -227,19 +227,19 @@ function model_eqs(scenario::Scenario, model::Model, config::OptionsV2016R, para
     # Cumulative total carbon emissions
     @constraint(model, [i=1:N], vars.CCATOT[i] == vars.CCA[i] + params.cumtree[i]);
     # Radiative forcing equation
-    @NLconstraint(model, [i=1:N], vars.FORC[i] == config.η * (log(vars.Mₐₜ[i]/588.0)/log(2)) + params.fₑₓ[i]);
+    @constraint(model, [i=1:N], vars.FORC[i] == config.η * (log(vars.Mₐₜ[i]/588.0)/log(2)) + params.fₑₓ[i]);
     # Equation for damage fraction
-    @NLconstraint(model, [i=1:N], vars.Ω[i] == config.ψ₁*vars.Tₐₜ[i]+params.ψ₂*vars.Tₐₜ[i]^config.ψ₃);
+    @constraint(model, [i=1:N], vars.Ω[i] == config.ψ₁*vars.Tₐₜ[i]+params.ψ₂*vars.Tₐₜ[i]^config.ψ₃);
     # Damage equation
     @constraint(model, [i=1:N], vars.DAMAGES[i] == vars.YGROSS[i]*vars.Ω[i]);
     # Cost of exissions reductions equation
-    @NLconstraint(model, [i=1:N], vars.Λ[i] == vars.YGROSS[i] * params.θ₁[i] * vars.μ[i]^config.θ₂);
+    @constraint(model, [i=1:N], vars.Λ[i] == vars.YGROSS[i] * params.θ₁[i] * vars.μ[i]^config.θ₂);
     # Equation for MC abatement
-    @NLconstraint(model, [i=1:N], vars.MCABATE[i] == params.pbacktime[i] * vars.μ[i]^(config.θ₂-1));
+    @constraint(model, [i=1:N], vars.MCABATE[i] == params.pbacktime[i] * vars.μ[i]^(config.θ₂-1));
     # Carbon price equation from abatement
-    @NLconstraint(model, [i=1:N], vars.CPRICE[i] == params.pbacktime[i] * vars.μ[i]^(config.θ₂-1));
+    @constraint(model, [i=1:N], vars.CPRICE[i] == params.pbacktime[i] * vars.μ[i]^(config.θ₂-1));
     # Output gross equation
-    @NLconstraint(model, [i=1:N], vars.YGROSS[i] == params.A[i]*(params.L[i]/1000.0)^(1-config.γₑ)*vars.K[i]^config.γₑ);
+    @constraint(model, [i=1:N], vars.YGROSS[i] == params.A[i]*(params.L[i]/1000.0)^(1-config.γₑ)*vars.K[i]^config.γₑ);
     # Output net of damages equation
     @constraint(model, [i=1:N], vars.YNET[i] == vars.YGROSS[i]*(1-vars.Ω[i]));
     # Output net equation
@@ -253,7 +253,7 @@ function model_eqs(scenario::Scenario, model::Model, config::OptionsV2016R, para
     # Period utility
     @constraint(model, [i=1:N], vars.CEMUTOTPER[i] == vars.PERIODU[i] * params.L[i] * params.rr[i]);
     # Instantaneous utility function equation
-    @NLconstraint(model, [i=1:N], vars.PERIODU[i] == ((vars.C[i]*1000.0/params.L[i])^(1-config.α)-1)/(1-config.α)-1);
+    @constraint(model, [i=1:N], vars.PERIODU[i] == ((vars.C[i]*1000.0/params.L[i])^(1-config.α)-1)/(1-config.α)-1);
 
     # Equations (offset) #
     # Cumulative carbon emissions
@@ -269,9 +269,9 @@ function model_eqs(scenario::Scenario, model::Model, config::OptionsV2016R, para
     # Temperature-climate equation for lower oceans
     @constraint(model, [i=1:N-1], vars.Tₗₒ[i+1] == vars.Tₗₒ[i] + config.ξ₄*(vars.Tₐₜ[i]-vars.Tₗₒ[i]));
     # Capital balance equation
-    @NLconstraint(model, [i=1:N-1], vars.K[i+1] <= (1-config.δk)^config.tstep * vars.K[i] + config.tstep*vars.I[i]);
+    @constraint(model, [i=1:N-1], vars.K[i+1] <= (1-config.δk)^config.tstep * vars.K[i] + config.tstep*vars.I[i]);
     # Interest rate equation
-    @NLconstraint(model, [i=1:N-1], vars.RI[i] == (1+config.ρ)*(vars.CPC[i+1]/vars.CPC[i])^(config.α/config.tstep)-1);
+    @constraint(model, [i=1:N-1], vars.RI[i] == (1+config.ρ)*(vars.CPC[i+1]/vars.CPC[i])^(config.α/config.tstep)-1);
 
     # Savings rate for asympotic equilibrium
     for i=N-9:N
@@ -286,7 +286,7 @@ function model_eqs(scenario::Scenario, model::Model, config::OptionsV2016R, para
     if isMumps
         # We can't fix these, the solution becomes concave.
         # This is something buggy in JuMP I think. Haven't been able to pin it down.
-        @NLconstraint(model, vars.K[1] == config.k₀);
+        @constraint(model, vars.K[1] == config.k₀);
         @constraint(model, vars.Tₐₜ[1] == config.tatm₀);
     else
         JuMP.fix(vars.Tₐₜ[1], config.tatm₀; force=true);

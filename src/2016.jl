@@ -3,7 +3,7 @@
     cpricebase::Array{Float64,1} # Carbon price in base case
     rr::Array{Float64,1} # Average utility social discount rate
     optlrsav::Float64 # Optimal savings rate
-    ψ₂::JuMP.NonlinearParameter
+    ψ₂::JuMP.VariableRef
     cumtree::Array{Float64,1} # Cumulative from land
 end
 
